@@ -16,7 +16,10 @@
 
 import hmac
 
-proc generate*(secret: string, movingFactor: int, digits: int): int =
+type
+  UnsupportedDigitLengthError = object of Exception
+
+proc generate*(secret: string, movingFactor: int, digits: int): string =
   var factor = movingFactor
   var text = ""
   for i in 0..7:
@@ -30,12 +33,20 @@ proc generate*(secret: string, movingFactor: int, digits: int): int =
       (int(hash[offset+1] and 0xff) shl 16) or
       (int(hash[offset+2] and 0xff) shl 8) or
       int(hash[offset+3] and 0xff)
+  var otp = 0
   case digits
   of 6:
-    result = binary mod 1000000
+    otp = binary mod 1000000
   of 7:
-    result = binary mod 10000000
+    otp = binary mod 10000000
   of 8:
-    result = binary mod 100000000
+    otp = binary mod 100000000
   else:
     discard
+
+  if otp == 0:
+    raise newException(UnsupportedDigitLengthError, "Unsupported number of digits.")
+
+  result = $otp
+  while len(result) < digits:
+    result = "0" & result
