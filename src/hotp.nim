@@ -14,3 +14,28 @@
 # Author: Yoshihiro Tanaka <contact@cordea.jp>
 # date  : 2019-07-13
 
+import hmac
+
+proc generate*(secret: string, movingFactor: int, digits: int): int =
+  var factor = movingFactor
+  var text = ""
+  for i in 0..7:
+    text = char(byte(factor and 0xff)) & text
+    factor = factor shr 8
+
+  let hash = hmac_sha1(secret, text)
+  let offset = hash[len(hash)-1] and 0xf
+  let binary =
+    (int(hash[offset] and 0x7f) shl 24) or
+      (int(hash[offset+1] and 0xff) shl 16) or
+      (int(hash[offset+2] and 0xff) shl 8) or
+      int(hash[offset+3] and 0xff)
+  case digits
+  of 6:
+    result = binary mod 1000000
+  of 7:
+    result = binary mod 10000000
+  of 8:
+    result = binary mod 100000000
+  else:
+    discard
