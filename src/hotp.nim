@@ -19,6 +19,16 @@ import hmac
 type
   UnsupportedDigitLengthError = object of Exception
 
+  Hotp* = ref object
+    secret: string
+    digits: int
+
+proc newHotp*(secret: string, digits: int): Hotp =
+  result = Hotp(
+    secret: secret,
+    digits: digits
+  )
+
 proc generate*(secret: string, movingFactor: int, digits: int): string =
   var factor = movingFactor
   var text = ""
@@ -50,3 +60,6 @@ proc generate*(secret: string, movingFactor: int, digits: int): string =
   result = $otp
   while len(result) < digits:
     result = "0" & result
+
+proc generate*(hotp: Hotp, movingFactor: int): string =
+  result = generate(hotp.secret, movingFactor, hotp.digits)
