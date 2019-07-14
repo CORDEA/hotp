@@ -15,34 +15,49 @@
 # date  : 2019-07-13
 
 import hmac
+import sequtils
 
 type
   UnsupportedDigitLengthError = object of Exception
 
+  HashFunctionType* = enum
+    TypeSha1, TypeSha256, TypeSha512
+
   Hotp* = ref object
     secret: string
     digits: int
+    hashType: HashFunctionType
 
-proc newHotp*(secret: string, digits: int): Hotp =
+proc newHotp*(secret: string, digits: int, hashType: HashFunctionType): Hotp =
   result = Hotp(
     secret: secret,
-    digits: digits
+    digits: digits,
+    hashType: hashType
   )
 
-proc generate*(secret: string, movingFactor: int, digits: int): string =
+proc calculateHmac(secret, text: string, hashType: HashFunctionType): seq[int] =
+  case hashType
+  of TypeSha1:
+    result = hmac_sha1(secret, text).toSeq().mapIt(int(it))
+  of TypeSha256:
+    result = hmac_sha256(secret, text).toSeq().mapIt(int(it))
+  of TypeSha512:
+    result = hmac_sha512(secret, text).toSeq().mapIt(int(it))
+
+proc generate*(secret: string, movingFactor: int, digits: int, hashType: HashFunctionType): string =
   var factor = movingFactor
   var text = ""
   for i in 0..7:
     text = char(byte(factor and 0xff)) & text
     factor = factor shr 8
 
-  let hash = hmac_sha1(secret, text)
-  let offset = hash[len(hash)-1] and 0xf
+  let hmac = calculateHmac(secret, text, hashType)
+  let offset = hmac[len(hmac)-1] and 0xf
   let binary =
-    (int(hash[offset] and 0x7f) shl 24) or
-      (int(hash[offset+1] and 0xff) shl 16) or
-      (int(hash[offset+2] and 0xff) shl 8) or
-      int(hash[offset+3] and 0xff)
+    (int(hmac[offset] and 0x7f) shl 24) or
+      (int(hmac[offset+1] and 0xff) shl 16) or
+      (int(hmac[offset+2] and 0xff) shl 8) or
+      int(hmac[offset+3] and 0xff)
   var otp = 0
   case digits
   of 6:
@@ -62,4 +77,4 @@ proc generate*(secret: string, movingFactor: int, digits: int): string =
     result = "0" & result
 
 proc generate*(hotp: Hotp, movingFactor: int): string =
-  result = generate(hotp.secret, movingFactor, hotp.digits)
+  result = generate(hotp.secret, movingFactor, hotp.digits, hotp.hashType)

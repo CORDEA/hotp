@@ -22,6 +22,6 @@ const Secret = "01234567890123456789"
 # Used in google authenticator.
 const EncodedSecret = "GAYTEMZUGU3DOOBZGAYTEMZUGU3DOOBZ"
 
-let gen = newHotp(Secret, 6)
+let gen = newHotp(Secret, 6, TypeSha1)
 for i in 1..10:
   echo gen.generate(i)
