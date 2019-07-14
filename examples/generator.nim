@@ -16,6 +16,8 @@
 
 import ../src/hotp
 
+# RECOMMENDs a shared secret length of 160 bits.
+#   - https://tools.ietf.org/html/rfc4226
 const Secret = "01234567890123456789"
 
 # Base32 encoded secret
